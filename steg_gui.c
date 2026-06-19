@@ -7,9 +7,9 @@
 
 #define END_MARKER "1111111111111110"
 
-HWND hwndEdit;  // Mesaj giriş alanı
+HWND hwndEdit;  // Message Input
 
-char selectedFile[MAX_PATH]; // seçilen PNG
+char selectedFile[MAX_PATH]; // selected PNG
 
 // --- Binary conversion ---
 void text_to_binary(const char *text, char *binary) {
@@ -35,7 +35,7 @@ void binary_to_text(char *binary, char *text) {
 // --- Encode ---
 void encode_image(const char *input_path, const char *output_path, const char *message){
     FILE *fp=fopen(input_path,"rb");
-    if(!fp){ MessageBox(NULL,"Dosya açılamadı!","Hata",MB_OK); return;}
+    if(!fp){ MessageBox(NULL,"File couldnt open!","Error",MB_OK); return;}
 
     png_structp png=png_create_read_struct(PNG_LIBPNG_VER_STRING,NULL,NULL,NULL);
     png_infop info=png_create_info_struct(png);
@@ -48,7 +48,7 @@ void encode_image(const char *input_path, const char *output_path, const char *m
     png_byte bit_depth=png_get_bit_depth(png,info);
 
     if(bit_depth!=8 || (color_type!=PNG_COLOR_TYPE_RGB && color_type!=PNG_COLOR_TYPE_RGBA)){
-        MessageBox(NULL,"Sadece 8-bit RGB veya RGBA PNG desteklenir!","Hata",MB_OK);
+        MessageBox(NULL,"Only 8-bit RGB OR RGBA PNG supported!","Error",MB_OK);
         return;
     }
 
@@ -86,8 +86,8 @@ void encode_image(const char *input_path, const char *output_path, const char *m
     fclose(fp);
 
     char msg[200];
-    sprintf(msg,"Mesaj gizlendi: %s",output_path);
-    MessageBox(NULL,msg,"Başarılı",MB_OK);
+    sprintf(msg,"Message Hidden: %s",output_path);
+    MessageBox(NULL,msg,"Successfull",MB_OK);
 
     for(int y=0;y<height;y++) free(row_pointers[y]);
     free(row_pointers);
@@ -96,7 +96,7 @@ void encode_image(const char *input_path, const char *output_path, const char *m
 // --- Decode ---
 void decode_image(const char *input_path){
     FILE *fp=fopen(input_path,"rb");
-    if(!fp){ MessageBox(NULL,"Dosya açılamadı!","Hata",MB_OK); return;}
+    if(!fp){ MessageBox(NULL,"File couldnt open!","Error",MB_OK); return;}
 
     png_structp png=png_create_read_struct(PNG_LIBPNG_VER_STRING,NULL,NULL,NULL);
     png_infop info=png_create_info_struct(png);
@@ -128,14 +128,14 @@ void decode_image(const char *input_path){
                         char text[1000000];
                         binary_to_text(binary,text);
                         SetWindowText(hwndEdit,text);
-                        MessageBox(NULL,"Mesaj çözüldü!","Başarılı",MB_OK);
+                        MessageBox(NULL,"Message Decoded.!","Successfull",MB_OK);
                         goto cleanup;
                     }
                 }
             }
         }
     }
-    MessageBox(NULL,"Mesaj bulunamadı!","Hata",MB_OK);
+    MessageBox(NULL,"Couldnt find message!","Error",MB_OK);
 
 cleanup:
     for(int y=0;y<height;y++) free(row_pointers[y]);
@@ -148,11 +148,11 @@ void select_file(HWND hwnd){
     ZeroMemory(&ofn,sizeof(ofn));
     ofn.lStructSize=sizeof(ofn);
     ofn.hwndOwner=hwnd;
-    ofn.lpstrFilter="PNG Dosyaları\0*.png\0";
+    ofn.lpstrFilter="PNG Files\0*.png\0";
     ofn.lpstrFile=selectedFile;
     ofn.nMaxFile=MAX_PATH;
     if(GetOpenFileName(&ofn)){
-        MessageBox(hwnd,selectedFile,"Dosya Seçildi",MB_OK);
+        MessageBox(hwnd,selectedFile,"File selected",MB_OK);
     }
 }
 
@@ -160,11 +160,11 @@ void select_file(HWND hwnd){
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
     switch(msg){
         case WM_CREATE:{
-            CreateWindow("STATIC", "Mesaj:", WS_VISIBLE|WS_CHILD, 10,10,60,20, hwnd, NULL,NULL,NULL);
+            CreateWindow("STATIC", "Message:", WS_VISIBLE|WS_CHILD, 10,10,60,20, hwnd, NULL,NULL,NULL);
             hwndEdit=CreateWindowEx(WS_EX_CLIENTEDGE,"EDIT","",WS_CHILD|WS_VISIBLE|ES_MULTILINE|ES_AUTOVSCROLL,10,35,460,150,hwnd,NULL,NULL,NULL);
-            CreateWindow("BUTTON","📂 Dosya Seç",WS_VISIBLE|WS_CHILD,10,200,100,30,hwnd,(HMENU)1,NULL,NULL);
-            CreateWindow("BUTTON","📥 Mesaj Gizle",WS_VISIBLE|WS_CHILD,120,200,120,30,hwnd,(HMENU)2,NULL,NULL);
-            CreateWindow("BUTTON","📤 Mesaj Çöz",WS_VISIBLE|WS_CHILD,250,200,120,30,hwnd,(HMENU)3,NULL,NULL);
+            CreateWindow("BUTTON","📂 Select file",WS_VISIBLE|WS_CHILD,10,200,100,30,hwnd,(HMENU)1,NULL,NULL);
+            CreateWindow("BUTTON","📥 Hide Message",WS_VISIBLE|WS_CHILD,120,200,120,30,hwnd,(HMENU)2,NULL,NULL);
+            CreateWindow("BUTTON","📤 Extract Message",WS_VISIBLE|WS_CHILD,250,200,120,30,hwnd,(HMENU)3,NULL,NULL);
         } break;
         case WM_COMMAND:{
             switch(LOWORD(wParam)){
@@ -172,13 +172,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
                 case 2:{
                     char text[1000000];
                     GetWindowText(hwndEdit,text,1000000);
-                    if(strlen(selectedFile)==0){MessageBox(hwnd,"Önce dosya seç!","Hata",MB_OK); break;}
+                    if(strlen(selectedFile)==0){MessageBox(hwnd,"Firstly select a file!","Error",MB_OK); break;}
                     char output[MAX_PATH];
                     sprintf(output,"%s_encoded.png",selectedFile);
                     encode_image(selectedFile,output,text);
                 } break;
                 case 3:{
-                    if(strlen(selectedFile)==0){MessageBox(hwnd,"Önce dosya seç!","Hata",MB_OK); break;}
+                    if(strlen(selectedFile)==0){MessageBox(hwnd,"Firstly select a file!","Error",MB_OK); break;}
                     decode_image(selectedFile);
                 } break;
             }
@@ -197,7 +197,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nCmdShow){
     wc.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);
     RegisterClass(&wc);
 
-    HWND hwnd=CreateWindow("StegGUI","Steganografi GUI",WS_OVERLAPPEDWINDOW|WS_VISIBLE,100,100,500,300,NULL,NULL,hInst,NULL);
+    HWND hwnd=CreateWindow("StegGUI","Steganography GUI",WS_OVERLAPPEDWINDOW|WS_VISIBLE,100,100,500,300,NULL,NULL,hInst,NULL);
 
     MSG msg;
     while(GetMessage(&msg,NULL,0,0)){
